@@ -8,7 +8,13 @@
   string->gfx
   gfx->string
   gfx-scale
-  gfx-nbits)
+  gfx-nbits
+  gfx+
+  gfx-
+  gfx*
+  gfx/
+  gfxabs
+  gfxsqr)
 
 ;;;;;;;;;;;;;;;; Struct / Parameters ;;;;;;;;;;;;;;;
 
@@ -17,12 +23,13 @@
 (define gfx-overflow (make-parameter 'clamp))
 (define gfx-infinity? (make-parameter #f))
 (define gfx-nan? (make-parameter #f))
+(define gfx-inexact? (make-parameter #f))
 
 (struct gfixnum (fbits nbits val)
         #:methods gen:custom-write
         [(define (write-proc x port mode)
-          (fprintf port "#<gfx[~a, ~a]: ~a>" (gfixnum-fbits x)
-                   (gfixnum-nbits x) (gfx->real x)))])
+          (fprintf port "#<gfx[~a, ~a]: ~a>" (gfixnum-fbits x) (gfixnum-nbits x)
+                   (if (gfx-inexact?) (exact->inexact (gfx->real x)) (gfx->real x))))])
 
 ;;;;;;;;;;;;;;;;;;;;; Utility ;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -35,11 +42,15 @@
    [(< x min) min]
    [else x]))
 
+(define (normalize x)
+  (match (gfx-overflow)
+   ['clamp (clamp-fixnum (round x))]))
+
 ;;;;;;;;;;;;;;;;;;;; Conversions ;;;;;;;;;;;;;;;;;;;;;;
 
 (define (real->gfx x)
   (define scale (expt 2 (- (gfx-scale))))
-  (define val (clamp-fixnum (round (* x scale))))
+  (define val (normalize (* x scale)))
   (gfixnum (gfx-scale) (gfx-nbits) val))
 
 (define (gfx->real x)
@@ -53,3 +64,38 @@
 
 (define (gfx->string x)
   (number->string (gfx->real x)))
+
+;;;;;;;;;;;;;;;;;;; Arithmetic ;;;;;;;;;;;;;;;;;;;;;;;
+
+(define (gfx+ . args)
+  (define sum (apply + (map gfixnum-val args)))
+  (gfixnum (gfx-scale) (gfx-nbits) (normalize sum)))
+
+(define (gfx- . args)
+  (define sum (apply - (map gfixnum-val args)))
+  (gfixnum (gfx-scale) (gfx-nbits) (normalize sum)))
+
+(define (gfx* . args)
+  (define scale (expt 2 (gfx-scale)))
+  (define vals (map gfixnum-val args))
+  (define prod (apply * (car vals) (map (curryr * scale) (cdr vals))))
+  (gfixnum (gfx-scale) (gfx-nbits) (normalize prod)))
+
+(define (gfx/ . args)
+  (define scale (expt 2 (- (gfx-scale))))
+  (define vals (map gfixnum-val args))
+  (define div
+    (let loop ([x (car vals)] [ys (cdr vals)])
+      (cond
+       [(null? ys) x]
+       [else (loop (/ (* x scale) (car ys)) (cdr ys))])))
+  (gfixnum (gfx-scale) (gfx-nbits) (normalize div)))
+
+(define (gfxabs x)
+  (gfixnum (gfx-scale) (gfx-nbits) (normalize (abs (gfixnum-val x)))))
+
+(define (gfxsqr x)
+  (define scale (expt 2 (gfx-scale)))
+  (define val (gfixnum-val x))
+  (gfixnum (gfx-scale) (gfx-nbits) (normalize (* val val scale))))
+  

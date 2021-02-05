@@ -10,7 +10,14 @@
   [string->gfx (-> string? gfx?)]
   [gfx->string (-> gfx? string?)]
   [gfx-scale (parameter/c exact-integer?)]
-  [gfx-nbits (parameter/c exact-positive-integer?)]))
+  [gfx-nbits (parameter/c exact-positive-integer?)]
+
+  [gfx+ (-> gfx? gfx? ... gfx?)]
+  [gfx- (-> gfx? gfx? ... gfx?)]
+  [gfx* (-> gfx? gfx? ... gfx?)]
+  [gfx/ (-> gfx? gfx? ... gfx?)]
+  [gfxabs (-> gfx? gfx?)]
+  [gfxsqr (-> gfx? gfx?)]))
 
 (define (gfx x)
   (cond
