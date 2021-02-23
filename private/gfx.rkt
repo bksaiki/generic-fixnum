@@ -7,8 +7,14 @@
   gfx->real
   string->gfx
   gfx->string
+
   gfx-scale
   gfx-nbits
+  gfx-overflow
+  gfx-infinity?
+  gfx-nan?
+  gfx-inexact?
+
   gfx+
   gfx-
   gfx*
@@ -26,10 +32,13 @@
 (define gfx-inexact? (make-parameter #f))
 
 (struct gfixnum (fbits nbits val)
+        #:transparent
         #:methods gen:custom-write
         [(define (write-proc x port mode)
           (fprintf port "#<gfx[~a, ~a]: ~a>" (gfixnum-fbits x) (gfixnum-nbits x)
-                   (if (gfx-inexact?) (exact->inexact (gfx->real x)) (gfx->real x))))])
+                   (if (gfx-inexact?)
+                       (exact->inexact (gfx->real x))
+                       (gfx->real x))))])
 
 ;;;;;;;;;;;;;;;;;;;;; Utility ;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -40,7 +49,7 @@
   (cond
    [(> x max) max]
    [(< x min) min]
-   [else x]))
+   [else (inexact->exact x)]))
 
 (define (normalize x)
   (match (gfx-overflow)
@@ -64,6 +73,29 @@
 
 (define (gfx->string x)
   (number->string (gfx->real x)))
+
+;;;;;;;;;;;;;;;;;;; Comparators ;;;;;;;;;;;;;;;;;;;;;;;
+
+(define-syntax-rule (gfx-comparator name fun)
+  (begin
+    (define (name head . rest)
+      (let loop ([head head] [args rest])
+        (cond
+        [(null? args) #t]
+        [(fun (gfixnum-val head) (gfixnum-val (car args)))
+          (loop (car args) (cdr args))]
+        [else #f])))
+    (provide name)))
+
+(define-syntax-rule (gfx-comparators [name fun] ...)
+  (begin (gfx-comparator name fun) ...))
+
+(gfx-comparators
+ [gfx=  =]
+ [gfx<  <]
+ [gfx>  >]
+ [gfx<= <=]
+ [gfx>= >=])
 
 ;;;;;;;;;;;;;;;;;;; Arithmetic ;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -98,4 +130,7 @@
   (define scale (expt 2 (gfx-scale)))
   (define val (gfixnum-val x))
   (gfixnum (gfx-scale) (gfx-nbits) (normalize (* val val scale))))
-  
+
+
+
+;;;;;;;;;;;;;;;;;;; Arithmetic ;;;;;;;;;;;;;;;;;;;;;;;

@@ -11,6 +11,16 @@
   [gfx->string (-> gfx? string?)]
   [gfx-scale (parameter/c exact-integer?)]
   [gfx-nbits (parameter/c exact-positive-integer?)]
+  [gfx-overflow (parameter/c (symbols 'clamp))]
+  [gfx-infinity? (parameter/c boolean?)]
+  [gfx-nan? (parameter/c boolean?)]
+  [gfx-inexact? (parameter/c boolean?)]
+
+  [gfx= (gfx? gfx? ... . -> . boolean?)]
+  [gfx< (gfx? gfx? ... . -> . boolean?)]
+  [gfx> (gfx? gfx? ... . -> . boolean?)]
+  [gfx<= (gfx? gfx? ... . -> . boolean?)]
+  [gfx>= (gfx? gfx? ... . -> . boolean?)]
 
   [gfx+ (-> gfx? gfx? ... gfx?)]
   [gfx- (-> gfx? gfx? ... gfx?)]
